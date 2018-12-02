@@ -4,7 +4,7 @@ import caffe
 import os
 import skimage.color as color
 import scipy.ndimage.interpolation as sni
-import commands
+#import commands
 import os
 import subprocess
 import sys
@@ -18,6 +18,9 @@ outputimage = sys.argv[2]
 proto = sys.argv[3]
 model = sys.argv[4]
 
+caffe.set_mode_gpu()
+caffe.set_device(0)
+#caffe.set_mode_cpu()
 net = caffe.Net(proto,model, caffe.TEST)
 #net = caffe.Net('/home/luluf/colorization/models/colorization_deploy_v2.prototxt', 1, weights='/home/luluf/colorization/models/colorization_release_v2.caffemodel')
 
@@ -39,14 +42,13 @@ img_lab_rs = color.rgb2lab(img_rs)
 img_l_rs = img_lab_rs[:,:,0]
 
 net.blobs['data_l'].data[0,0,:,:] = img_l_rs-50 # subtract 50 for mean-centering
-caffe.set_mode_cpu()
+
 net.forward() # run network
 
 ab_dec = net.blobs['class8_ab'].data[0,:,:,:].transpose((1,2,0)) # this is our result
 ab_dec_us = sni.zoom(ab_dec,(1.*H_orig/H_out,1.*W_orig/W_out,1)) # upsample to match size of original image L
 img_lab_out = np.concatenate((img_l[:,:,np.newaxis],ab_dec_us),axis=2) # concatenate with original image L
 img_rgb_out = np.clip(color.lab2rgb(img_lab_out),0,1) # convert back to rgb
-
 #print ("network size : %d %d",H_in,W_in)
 imageio.imsave(outputimage, img_rgb_out)
 #imageio.imsave("tmp.png", img_rgb_out)

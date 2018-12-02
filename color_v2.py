@@ -18,14 +18,16 @@ outputimage = sys.argv[2]
 proto = sys.argv[3]
 model = sys.argv[4]
 
+caffe.set_mode_gpu()
+caffe.set_device(0)
+#caffe.set_mode_cpu()
 net = caffe.Net(proto,model, caffe.TEST)
 #net = caffe.Net('/home/luluf/colorization/models/colorization_deploy_v2.prototxt', 1, weights='/home/luluf/colorization/models/colorization_release_v2.caffemodel')
 
 (H_in,W_in) = net.blobs['data_l'].data.shape[2:] # get input shape
 (H_out,W_out) = net.blobs['class8_ab'].data.shape[2:] # get output shape
-(H_in,W_in) = net.blobs['data_l'].data.shape[2:] # get input shape
-(H_out,W_out) = net.blobs['class8_ab'].data.shape[2:] # get output shape
-pts_in_hull = np.load('/shared1/foss/colorization/resources/pts_in_hull.npy') # load cluster centers
+
+pts_in_hull = np.load('/shared/foss/colorization/resources/pts_in_hull.npy') # load cluster centers
 net.params['class8_ab'][0].data[:,:,0,0] = pts_in_hull.transpose((1,0)) # populate cluster centers as 1x1 convolution kernel
 print 'Annealed-Mean Parameters populated'
 
@@ -45,7 +47,7 @@ img_lab_rs = color.rgb2lab(img_rs)
 img_l_rs = img_lab_rs[:,:,0]
 
 net.blobs['data_l'].data[0,0,:,:] = img_l_rs-50 # subtract 50 for mean-centering
-caffe.set_mode_cpu()
+
 net.forward() # run network
 
 ab_dec = net.blobs['class8_ab'].data[0,:,:,:].transpose((1,2,0)) # this is our result
